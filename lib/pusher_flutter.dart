@@ -68,7 +68,7 @@ class PusherFlutter {
   ///
   /// This will un-subscribe you from all events on that channel.
   void unsubscribe(String channelName) {
-    _channel.invokeMethod('unsubscribe', channelName);
+    _channel.invokeMethod('unsubscribe', {"channel": channelName});
   }
 
   /// Get the [Stream] of [PusherMessage] for the channels and events you've
@@ -86,7 +86,7 @@ class PusherFlutter {
   Stream<PusherConnectionState> get onConnectivityChanged =>
       _connectivityEventChannel
           .receiveBroadcastStream()
-          .map(_connectivityStringToState);
+          .map((state) => _connectivityStringToState(state.toString()));
 
   PusherConnectionState _connectivityStringToState(String string) {
     switch (string) {
