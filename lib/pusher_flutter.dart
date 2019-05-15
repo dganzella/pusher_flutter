@@ -36,13 +36,15 @@ class PusherFlutter {
   }
 
   /// Connect to the pusher service.
-  void connect() {
+  Future<void> connect() async {
     _channel.invokeMethod('connect');
+    return;
   }
 
   /// Disconnect from the pusher service
-  void disconnect() {
+  Future<void> disconnect() async {
     _channel.invokeMethod('disconnect');
+    return;
   }
 
   /// Subscribe to a channel with the name [channelName] for the event [event]
@@ -50,25 +52,26 @@ class PusherFlutter {
   /// Calling this method will cause any messages matching the [event] and [channelName]
   /// provided to be delivered to the [onMessage] method. After calling this you
   /// must listen to the [Stream] returned from [onMessage].
-  void subscribe(String channelName, String event) {
-    _channel
-        .invokeMethod('subscribe', {"channel": channelName, "event": event});
+  Future<void> subscribe(String channelName, String event) async {
+    await _channel.invokeMethod('subscribe', {"channel": channelName, "event": event});
+    return;
   }
 
   /// Subscribe to the channel [channelName] for each [eventName] in [events]
   ///
   /// This method is just for convenience if you need to register multiple events
   /// for the same channel.
-  void subscribeAll(String channelName, List<String> events) {
-    events.forEach((e) => _channel
-        .invokeMethod('subscribe', {"channel": channelName, "event": e}));
+  Future<void> subscribeAll(String channelName, List<String> events) async {
+    await events.forEach((e) => _channel.invokeMethod('subscribe', {"channel": channelName, "event": e}));
+    return;
   }
 
   /// Unsubscribe from a channel with the name [channelName]
   ///
   /// This will un-subscribe you from all events on that channel.
-  void unsubscribe(String channelName) {
-    _channel.invokeMethod('unsubscribe', {"channel": channelName});
+  Future<void> unsubscribe(String channelName) async {
+    await _channel.invokeMethod('unsubscribe', {"channel": channelName});
+    return;
   }
 
   /// Get the [Stream] of [PusherMessage] for the channels and events you've
