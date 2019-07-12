@@ -6,10 +6,10 @@
 @class PusherErrorStream;
 
 @interface PusherFlutterPlugin : NSObject<FlutterPlugin, PTPusherDelegate>
-    @property PTPusher *pusher;
-    @property MessageStreamHandler *messageStreamHandler;
-    @property PusherConnectionStateStream *connectivityStreamHandler;
-    @property PusherErrorStream *errorStreamHandler;
+    @property PTPusher * pusher;
+    @property MessageStreamHandler * messageStreamHandler;
+    @property PusherConnectionStateStream * connectivityStreamHandler;
+    @property PusherErrorStream * errorStreamHandler;
     @property NSString * userToken;
 
 @end
