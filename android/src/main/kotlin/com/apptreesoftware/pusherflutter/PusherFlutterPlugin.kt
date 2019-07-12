@@ -8,16 +8,18 @@ import com.pusher.client.channel.SubscriptionEventListener
 import com.pusher.client.connection.ConnectionEventListener
 import com.pusher.client.connection.ConnectionState
 import com.pusher.client.connection.ConnectionStateChange
+import com.pusher.client.util.HttpAuthorizer
+
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
+
 import org.json.JSONObject
 import java.lang.Exception
 import org.json.JSONArray
-
 
 
 class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
@@ -83,10 +85,20 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                 val pusher = this.pusher ?: return
                 val event = call.argument<String>("event") ?: throw RuntimeException("Must provide event name")
                 val channelName = call.argument<String>("channel") ?: throw RuntimeException("Must provide channel")
-                var channel = pusher.getChannel(channelName)
+
+                var channel;
+
+                if(channelName.contains('presence')){
+                    channel = pusher.getPresenceChannel(channelName)
+                }
+                else{
+                   channel = pusher.getChannel(channelName)
+                }
+                 
                 if (channel == null) {
                     channel = pusher.subscribe(channelName)
                 }
+
                 listenToChannel(channel, event)
                 result.success(null)
             }
