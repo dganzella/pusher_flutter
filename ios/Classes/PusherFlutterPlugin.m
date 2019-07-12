@@ -52,7 +52,7 @@
 
 - (void)pusher:(PTPusher *)pusher willAuthorizeChannel:(PTPusherChannel *)channel withAuthOperation:(PTPusherChannelAuthorizationOperation *)operation {
 
-    [request setValue:self.userToken forHTTPHeaderField:@"token"];
+    //[request setValue:self.userToken forHTTPHeaderField:@"token"];
 }
 
 - (void)pusher:(PTPusher *)pusher didSubscribeToChannel:(PTPusherChannel *)channel {
