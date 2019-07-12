@@ -10,6 +10,8 @@
     @property MessageStreamHandler *messageStreamHandler;
     @property PusherConnectionStateStream *connectivityStreamHandler;
     @property PusherErrorStream *errorStreamHandler;
+    @property NSString * userToken;
+
 @end
 
 @interface MessageStreamHandler : NSObject<FlutterStreamHandler>

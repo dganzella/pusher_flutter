@@ -20,12 +20,22 @@ class PusherFlutter {
   /// Creates a [PusherFlutter] with the specified [apiKey] from pusher.
   ///
   /// The [apiKey] may not be null.
-  PusherFlutter(String apiKey, {String cluster}) {
+  PusherFlutter(String apiKey, {String cluster, String csrfToken, String userToken, String presenceAuthEndpoint }) {
     _channel = new MethodChannel('plugins.apptreesoftware.com/pusher');
     var args = {"api_key": apiKey};
     if (cluster != null) {
       args["cluster"] = cluster;
     }
+    if (userToken != null) {
+      args["userToken"] = userToken;
+    }
+    if (csrfToken != null) {
+      args["csrfToken"] = csrfToken;
+    }
+    if (presenceAuthEndpoint != null) {
+      args["presenceAuthEndpoint"] = presenceAuthEndpoint;
+    }
+
     _channel.invokeMethod('create', args);
     _connectivityEventChannel =
         new EventChannel('plugins.apptreesoftware.com/pusher_connection');

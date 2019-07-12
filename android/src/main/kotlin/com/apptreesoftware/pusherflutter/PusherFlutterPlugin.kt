@@ -60,10 +60,21 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
             "create" -> {
                 val apiKey = call.argument<String>("api_key")
                 val cluster = call.argument<String?>("cluster")
+
+                val presenceAuthEndpoint = call.argument<String?>("presenceAuthEndpoint")
+                val userToken = call.argument<String?>("userToken")
+
                 val pusherOptions = PusherOptions()
                 if (cluster != null) {
                     pusherOptions.setCluster(cluster)
                 }
+
+                if (presenceAuthEndpoint != null && userToken != null) {
+                    val authorizer = HttpAuthorizer(presenceAuthEndpoint);
+                    authorizer.setHeaders( mapOf("token" to userToken) );
+                    pusherOptions.setAuthorizer(authorizer)
+                }
+
                 pusher = Pusher(apiKey, pusherOptions)
             }
             "connect" -> pusher?.connect(this, ConnectionState.ALL)

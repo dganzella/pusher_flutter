@@ -52,6 +52,7 @@
 
 - (void)pusher:(PTPusher *)pusher willAuthorizeChannel:(PTPusherChannel *)channel withAuthOperation:(PTPusherChannelAuthorizationOperation *)operation {
 
+    [request setValue:self.userToken forHTTPHeaderField:@"token"];
 }
 
 - (void)pusher:(PTPusher *)pusher didSubscribeToChannel:(PTPusherChannel *)channel {
@@ -74,7 +75,18 @@
     if ([call.method isEqualToString:@"create"]) {
         NSString *apiKey = call.arguments[@"api_key"];
         NSString *cluster = call.arguments[@"cluster"];
+
         self.pusher = [PTPusher pusherWithKey:apiKey delegate:self encrypted:YES cluster:cluster];
+
+        NSString *presenceAuthEndpoint = call.arguments[@"presenceAuthEndpoint"];
+        NSString *uToken = call.arguments[@"userToken"];
+
+        if(presenceAuthEndpoint != nil && uToken != nil){
+            self.pusher.authorizationURL = [NSURL URLWithString: presenceAuthEndpoint];
+            self.userToken = [[NSString alloc] initWithString:uToken];
+        }
+        
+
         result(@(YES));
     } else if ([call.method isEqualToString:@"connect"]) {
         [self.pusher connect];
