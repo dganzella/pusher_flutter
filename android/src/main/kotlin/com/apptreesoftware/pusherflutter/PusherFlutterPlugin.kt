@@ -22,6 +22,8 @@ import io.flutter.plugin.common.PluginRegistry.Registrar
 import org.json.JSONObject
 import java.lang.Exception
 import org.json.JSONArray
+import android.os.Handler
+import android.os.Looper
 
 
 class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
@@ -59,7 +61,10 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
         errorStreamHandler.send(code ?: "", errMessage)
     }
 
-    override fun onMethodCall(call: MethodCall, result: Result): Unit {
+    override fun onMethodCall(call: MethodCall, rawResult: Result): Unit {
+
+        var result:MethodChannel.Result = MethodResultWrapper(rawResult)
+
         when (call.method) {
             "create" -> {
                 val apiKey = call.argument<String>("api_key")
@@ -162,7 +167,8 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
 
 class MessageStreamHandler : EventChannel.StreamHandler {
     private var eventSink: EventChannel.EventSink? = null
-    override fun onListen(arguments: Any?, sink: EventChannel.EventSink) {
+    override fun onListen(arguments: Any?, rawSink: EventChannel.EventSink) {
+        var sink:EventChannel.EventSink = EventSinkWrapper(rawSink)
         eventSink = sink
     }
 
@@ -170,8 +176,8 @@ class MessageStreamHandler : EventChannel.StreamHandler {
         val json = JSONObject(data as String)
         val map = jsonToMap(json)
         eventSink?.success(mapOf("channel" to channel,
-                                 "event" to event,
-                                 "body" to map))
+                "event" to event,
+                "body" to map))
     }
 
     override fun onCancel(p0: Any?) {
@@ -181,7 +187,8 @@ class MessageStreamHandler : EventChannel.StreamHandler {
 
 class ErrorStreamHandler : EventChannel.StreamHandler {
     private var eventSink: EventChannel.EventSink? = null
-    override fun onListen(arguments: Any?, sink: EventChannel.EventSink) {
+    override fun onListen(arguments: Any?, rawSink: EventChannel.EventSink) {
+        var sink:EventChannel.EventSink = EventSinkWrapper(rawSink)
         eventSink = sink
     }
 
@@ -197,7 +204,8 @@ class ErrorStreamHandler : EventChannel.StreamHandler {
 
 class ConnectionStreamHandler : EventChannel.StreamHandler {
     private var eventSink: EventChannel.EventSink? = null
-    override fun onListen(argunents: Any?, sink: EventChannel.EventSink) {
+    override fun onListen(argunents: Any?, rawSink: EventChannel.EventSink) {
+        var sink:EventChannel.EventSink = EventSinkWrapper(rawSink)
         eventSink = sink
     }
 
@@ -249,4 +257,82 @@ fun toList(array: JSONArray): List<Any> {
         list.add(value)
     }
     return list
+}
+
+// MethodChannel.Result wrapper that responds on the platform thread.
+private class MethodResultWrapper internal constructor(result:MethodChannel.Result): MethodChannel.Result {
+
+    private val methodResult:MethodChannel.Result
+    private val handler:Handler
+
+    init{
+        methodResult = result
+        handler = Handler(Looper.getMainLooper())
+    }
+
+
+    override fun success(result: Any?) {
+        handler.post(
+                object : Runnable {
+                    public override fun run() {
+                        methodResult.success(result)
+                    }
+                })
+    }
+
+    override fun error(
+            errorCode:String?, errorMessage:String?, errorDetails:Any?) {
+        handler.post(
+                object:Runnable {
+                    public override fun run() {
+                        methodResult.error(errorCode, errorMessage, errorDetails)
+                    }
+                })
+    }
+    override fun notImplemented() {
+        handler.post(
+                object:Runnable {
+                    public override fun run() {
+                        methodResult.notImplemented()
+                    }
+                })
+    }
+}
+
+private class EventSinkWrapper internal constructor(result:EventChannel.EventSink): EventChannel.EventSink {
+
+    private val methodResult:EventChannel.EventSink
+    private val handler:Handler
+
+    init{
+        methodResult = result
+        handler = Handler(Looper.getMainLooper())
+    }
+
+
+    override fun success(result: Any) {
+        handler.post(
+                object : Runnable {
+                    public override fun run() {
+                        methodResult.success(result)
+                    }
+                })
+    }
+
+    override fun error(errorCode:String, errorMessage:String, errorDetails:Any) {
+        handler.post(
+                object:Runnable {
+                    public override fun run() {
+                        methodResult.error(errorCode, errorMessage, errorDetails)
+                    }
+                })
+    }
+    override fun endOfStream() {
+        handler.post(
+                object:Runnable {
+                    public override fun run() {
+                        methodResult.endOfStream()
+                    }
+                })
+    }
 }
