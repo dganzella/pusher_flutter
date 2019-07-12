@@ -5,6 +5,8 @@ import com.pusher.client.Pusher
 import com.pusher.client.PusherOptions
 import com.pusher.client.channel.Channel
 import com.pusher.client.channel.SubscriptionEventListener
+import com.pusher.client.channel.PresenceChannelEventListener
+import com.pusher.client.channel.User;
 import com.pusher.client.connection.ConnectionEventListener
 import com.pusher.client.connection.ConnectionState
 import com.pusher.client.connection.ConnectionStateChange
@@ -95,7 +97,7 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                         channel = pusher.subscribePresence(channelName)
                     }
 
-                    listenToChannel(channel, event)
+                    listenToChannelPresence(channel, event)
                     result.success(null)
                 }
                 else{
@@ -123,6 +125,37 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
         val asyncDataListener = SubscriptionEventListener { _, eventName, data ->
             messageStreamHandler.send(channel.name, eventName, data)
         }
+        channel.bind(event, asyncDataListener)
+    }
+
+    private fun listenToChannelPresence(channel: Channel, event: String) {
+
+        val asyncDataListener = object : PresenceChannelEventListener {
+            override fun onEvent( channelName: String, eventName : String, data: String){
+                messageStreamHandler.send(channel.name, eventName, data)
+            }
+
+            override fun onSubscriptionSucceeded( channelName : String){
+
+            }
+
+            override fun onAuthenticationFailure( message : String, exception: Exception){
+
+            }
+
+            override fun onUsersInformationReceived( channelName : String, users: Set<User>){
+
+            }
+
+            override fun userSubscribed( channelName : String, user: User){
+
+            }
+
+            override fun userUnsubscribed( channelName : String, user: User){
+
+            }
+        }
+
         channel.bind(event, asyncDataListener)
     }
 }
