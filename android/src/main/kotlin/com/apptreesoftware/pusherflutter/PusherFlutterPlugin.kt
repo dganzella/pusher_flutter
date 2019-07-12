@@ -86,9 +86,9 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                 val event = call.argument<String>("event") ?: throw RuntimeException("Must provide event name")
                 val channelName = call.argument<String>("channel") ?: throw RuntimeException("Must provide channel")
 
-                var channel;
+                var channel = null;
 
-                if(channelName.contains('presence')){
+                if(channelName.contains("presence")){
                     channel = pusher.getPresenceChannel(channelName)
                 }
                 else{
