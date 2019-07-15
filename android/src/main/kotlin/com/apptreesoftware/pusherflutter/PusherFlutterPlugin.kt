@@ -72,16 +72,19 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
 
                 val presenceAuthEndpoint = call.argument<String?>("presenceAuthEndpoint")
                 val userToken = call.argument<String?>("userToken")
+                //val csrfToken = call.argument<String?>("csrfToken")
 
                 val pusherOptions = PusherOptions()
                 if (cluster != null) {
                     pusherOptions.setCluster(cluster)
                 }
 
-                if (presenceAuthEndpoint != null && userToken != null) {
+                if (presenceAuthEndpoint != null && userToken != null /*&& csrfToken != null*/) {
+
                     val authorizer = HttpAuthorizer(presenceAuthEndpoint);
-                    authorizer.setHeaders( mapOf("token" to userToken) );
-                    pusherOptions.setAuthorizer(authorizer)
+                    authorizer.setHeaders( mapOf("token" to userToken ) );
+
+                    pusherOptions.setAuthorizer(authorizer).setEncrypted(true);
                 }
 
                 pusher = Pusher(apiKey, pusherOptions)
@@ -93,8 +96,6 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                 val event = call.argument<String>("event") ?: throw RuntimeException("Must provide event name")
                 val channelName = call.argument<String>("channel") ?: throw RuntimeException("Must provide channel")
 
-                
-
                 if(channelName.contains("presence")){
                     var channel = pusher.getPresenceChannel(channelName)
 
@@ -103,6 +104,7 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                     }
 
                     listenToChannelPresence(channel, event)
+
                     result.success(null)
                 }
                 else{
@@ -113,6 +115,7 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                     }
                     
                     listenToChannel(channel, event)
+
                     result.success(null)
                 }
             }
@@ -141,23 +144,23 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
             }
 
             override fun onSubscriptionSucceeded( channelName : String){
-
+                println("on subscription succeeded");
             }
 
             override fun onAuthenticationFailure( message : String, exception: Exception){
-
+                println("on authentication failure");
             }
 
             override fun onUsersInformationReceived( channelName : String, users: Set<User>){
-
+                println("on user info received");
             }
 
             override fun userSubscribed( channelName : String, user: User){
-
+                 println("user subscribed");
             }
 
             override fun userUnsubscribed( channelName : String, user: User){
-
+                println("user unsubscribed");
             }
         }
 
