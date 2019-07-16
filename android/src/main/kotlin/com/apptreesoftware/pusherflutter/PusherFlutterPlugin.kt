@@ -317,7 +317,24 @@ private class EventSinkWrapper internal constructor(result:EventChannel.EventSin
         handler.post(
                 object : Runnable {
                     public override fun run() {
-                        methodResult.success(result)
+
+                        println("pre-bug-success");
+                        println(result);
+
+                        val nonullmap = (result as LinkedHashMap<String,*>);
+
+                        val body = nonullmap.get("body") as HashMap<*,*>;
+                        
+                        println(body);
+
+                        //nonullmap.set("body", (nonullmap.get("body") as String).replace("null", "\"null\"") )
+
+                        //val nonull = .replace("null", "\"null\"" )
+
+                        //println("post-bug-success");
+                        //println(nonullmap);
+
+                        //methodResult.success(nonullmap)
                     }
                 })
     }
