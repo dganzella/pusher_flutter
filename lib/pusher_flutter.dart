@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
@@ -48,6 +49,11 @@ class PusherFlutter {
   /// Connect to the pusher service.
   Future<void> connect() async {
     _channel.invokeMethod('connect');
+    return;
+  }
+
+  Future<void> triggerEvent(PusherMessage message) async {
+    _channel.invokeMethod('triggerEvent', {"channel": message.channelName, "event": message.eventName, "body": jsonEncode(message.body)} );
     return;
   }
 
