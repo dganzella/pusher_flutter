@@ -18,12 +18,15 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import io.flutter.plugin.common.StandardMessageCodec
+import io.flutter.plugin.common.StandardMethodCodec
 
 import org.json.JSONObject
 import java.lang.Exception
 import org.json.JSONArray
 import android.os.Handler
 import android.os.Looper
+import java.io.ByteArrayOutputStream;
 
 
 class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
@@ -33,20 +36,27 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
     val connectionStreamHandler = ConnectionStreamHandler()
     val errorStreamHandler = ErrorStreamHandler()
 
+    private val handler:Handler = Handler(Looper.getMainLooper())
+
     companion object {
         @JvmStatic
         fun registerWith(registrar: Registrar): Unit {
+
             val instance = PusherFlutterPlugin()
+
             val channel = MethodChannel(registrar.messenger(), "plugins.apptreesoftware.com/pusher")
             channel.setMethodCallHandler(instance)
             val connectionEventChannel = EventChannel(registrar.messenger(),
-                                                      "plugins.apptreesoftware.com/pusher_connection")
+                                                      "plugins.apptreesoftware.com/pusher_connection", StandardMethodCodec(CustomMessageCodec()))
+
             connectionEventChannel.setStreamHandler(instance.connectionStreamHandler)
             val messageEventChannel = EventChannel(registrar.messenger(),
-                                                   "plugins.apptreesoftware.com/pusher_message")
+                                                   "plugins.apptreesoftware.com/pusher_message", StandardMethodCodec(CustomMessageCodec()))
+
             messageEventChannel.setStreamHandler(instance.messageStreamHandler)
 
-            val errorEventChannel = EventChannel(registrar.messenger(), "plugins.apptreesoftware.com/pusher_error")
+            val errorEventChannel = EventChannel(registrar.messenger(), "plugins.apptreesoftware.com/pusher_error", StandardMethodCodec(CustomMessageCodec()))
+
             errorEventChannel.setStreamHandler(instance.errorStreamHandler)
         }
     }
@@ -125,12 +135,46 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                     var channel = pusher.getPresenceChannel(channelName)
 
                     if (channel == null) {
-                        channel = pusher.subscribePresence(channelName)
+
+                        val channelEvList = object : PresenceChannelEventListener {
+                            override fun onEvent( channelName: String, eventName : String, data: String){
+                            }
+
+                            override fun onSubscriptionSucceeded( channelName : String){
+                                println("on sub succeeded");
+
+                                handler.post(
+                                    object : Runnable {
+                                    public override fun run() {
+                                        result.success(null);
+                                    }
+                                })
+                            }
+
+                            override fun onAuthenticationFailure( message : String, exception: Exception){
+                                println("on auth fail");
+                            }
+
+                            override fun onUsersInformationReceived( channelName : String, users: Set<User>){
+                                println("on user info received");
+                            }
+
+                            override fun userSubscribed( channelName : String, user: User){
+                                println("user subscribed");
+                            }
+
+                            override fun userUnsubscribed( channelName : String, user: User){
+                                println("user unsubscribed");
+                            }
+                        }
+
+                        channel = pusher.subscribePresence(channelName, channelEvList)
+                        listenToChannelPresence(channel, event)
                     }
-
-                    listenToChannelPresence(channel, event)
-
-                    result.success(null)
+                    else{
+                        listenToChannelPresence(channel, event)
+                        result.success(null);
+                    }
                 }
                 else{
                     var channel = pusher.getChannel(channelName)
@@ -169,23 +213,18 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
             }
 
             override fun onSubscriptionSucceeded( channelName : String){
-                println("on subscription succeeded");
             }
 
             override fun onAuthenticationFailure( message : String, exception: Exception){
-                println("on authentication failure");
             }
 
             override fun onUsersInformationReceived( channelName : String, users: Set<User>){
-                println("on user info received");
             }
 
             override fun userSubscribed( channelName : String, user: User){
-                 println("user subscribed");
             }
 
             override fun userUnsubscribed( channelName : String, user: User){
-                println("user unsubscribed");
             }
         }
 
@@ -210,6 +249,21 @@ class MessageStreamHandler : EventChannel.StreamHandler {
 
     override fun onCancel(p0: Any?) {
         eventSink = null
+    }
+}
+
+class CustomMessageCodec() : StandardMessageCodec() {
+
+    override fun writeValue(stream: ByteArrayOutputStream, value: Any?) {
+
+        if(value != null && value.javaClass.name.contains("org.json.JSONObject"))
+        {
+            stream.write(0);
+        }
+        else
+        {
+            super.writeValue(stream, value);
+        }
     }
 }
 
@@ -342,24 +396,7 @@ private class EventSinkWrapper internal constructor(result:EventChannel.EventSin
         handler.post(
                 object : Runnable {
                     public override fun run() {
-
-                        println("pre-bug-success");
-                        println(result);
-
-                        val nonullmap = (result as LinkedHashMap<String,*>);
-
-                        val body = nonullmap.get("body") as HashMap<*,*>;
-                        
-                        println(body);
-
-                        //nonullmap.set("body", (nonullmap.get("body") as String).replace("null", "\"null\"") )
-
-                        //val nonull = .replace("null", "\"null\"" )
-
-                        //println("post-bug-success");
-                        //println(nonullmap);
-
-                        //methodResult.success(nonullmap)
+                        methodResult.success(result)
                     }
                 })
     }
