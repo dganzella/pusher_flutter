@@ -96,26 +96,22 @@
     } else if ([call.method isEqualToString:@"triggerEvent"]) {
         NSString *channelName = call.arguments[@"channel"];
         NSString *event = call.arguments[@"event"];
-        NSArray *body = call.arguments[@"body"];
-        printf("TRIGGEEEEEEER");
-        NSLog(channelName);
-        NSLog(event);
-        
-        NSRange isSpacedRange = [channelName rangeOfString:@"presence" options:NSCaseInsensitiveSearch];
-        if(isSpacedRange.location != NSNotFound) {
-            PTPusherPresenceChannel *channel = [self.pusher subscribeToPresenceChannelNamed:channelName delegate:nil];
+        NSString *body = call.arguments[@"body"];
+
+        if([channelName containsString:@"presence"]) {
+            PTPusherPresenceChannel *channel = [self.pusher subscribeToPresenceChannelNamed:channelName delegate:self];
             
-            if (!channel) {
-                [channel triggerEventNamed:event data:(id)body];
+            if (channel) {
+                [channel triggerEventNamed:event data:body];
                 result(@(YES));
             }
         }
     } else if ([call.method isEqualToString:@"subscribe"]) {
         NSString *channelName = call.arguments[@"channel"];
         NSString *event = call.arguments[@"event"];
-        PTPusherChannel *channel = [self.pusher channelNamed:channelName];
-        if (!channel) {
-            channel = [self.pusher subscribeToChannelNamed:channelName];
+        PTPusherPresenceChannel *channel = [self.pusher channelNamed:channelName];
+        if (channel) {
+            channel = [self.pusher subscribeToPresenceChannelNamed:channelName delegate:self];
         }
         [self listenToChannel:channel forEvent:event];
         result(@(YES));
@@ -130,7 +126,7 @@
     result(FlutterMethodNotImplemented);
 }
 
-- (void)listenToChannel:(PTPusherChannel *)channel forEvent:(NSString *)event {
+- (void)listenToChannel:(PTPusherPresenceChannel *)channel forEvent:(NSString *)event {
     [channel bindToEventNamed:event handleWithBlock:^(PTPusherEvent *e) {
         [self.messageStreamHandler send:channel.name event:event body:e.data];
     }];
