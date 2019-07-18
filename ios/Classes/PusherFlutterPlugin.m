@@ -50,9 +50,8 @@
     return YES;
 }
 
-- (void)pusher:(PTPusher *)pusher willAuthorizeChannel:(PTPusherChannel *)channel withAuthOperation:(PTPusherChannelAuthorizationOperation *)operation {
-
-    //[request setValue:self.userToken forHTTPHeaderField:@"token"];
+- (void)pusher:(PTPusher *)pusher willAuthorizeChannel:(PTPusherChannel *)channel withAuthOperation:(PTPusherChannelAuthorizationOperation *)operation withRequest:(NSMutableURLRequest *)request{
+    [request setValue:self.userToken forHTTPHeaderField:@"token"];
 }
 
 - (void)pusher:(PTPusher *)pusher didSubscribeToChannel:(PTPusherChannel *)channel {
@@ -94,6 +93,23 @@
     } else if ([call.method isEqualToString:@"disconnect"]) {
         [self.pusher disconnect];
         result(@(YES));
+    } else if ([call.method isEqualToString:@"triggerEvent"]) {
+        NSString *channelName = call.arguments[@"channel"];
+        NSString *event = call.arguments[@"event"];
+        NSArray *body = call.arguments[@"body"];
+        printf("TRIGGEEEEEEER");
+        NSLog(channelName);
+        NSLog(event);
+        
+        NSRange isSpacedRange = [channelName rangeOfString:@"presence" options:NSCaseInsensitiveSearch];
+        if(isSpacedRange.location != NSNotFound) {
+            PTPusherPresenceChannel *channel = [self.pusher subscribeToPresenceChannelNamed:channelName delegate:nil];
+            
+            if (!channel) {
+                [channel triggerEventNamed:event data:(id)body];
+                result(@(YES));
+            }
+        }
     } else if ([call.method isEqualToString:@"subscribe"]) {
         NSString *channelName = call.arguments[@"channel"];
         NSString *event = call.arguments[@"event"];
@@ -116,7 +132,7 @@
 
 - (void)listenToChannel:(PTPusherChannel *)channel forEvent:(NSString *)event {
     [channel bindToEventNamed:event handleWithBlock:^(PTPusherEvent *e) {
-        [_messageStreamHandler send:channel.name event:event body:e.data];
+        [self.messageStreamHandler send:channel.name event:event body:e.data];
     }];
 }
 
