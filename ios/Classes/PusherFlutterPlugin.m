@@ -50,20 +50,22 @@
     return YES;
 }
 
-- (void)pusher:(PTPusher *)pusher willAuthorizeChannel:(PTPusherChannel *)channel withAuthOperation:(PTPusherChannelAuthorizationOperation *)operation withRequest:(NSMutableURLRequest *)request{
+- (void)pusher:(PTPusher *)pusher willAuthorizeChannel:(PTPusherPresenceChannel *)channel withAuthOperation:(PTPusherChannelAuthorizationOperation *)operation withRequest:(NSMutableURLRequest *)request{
     [request setValue:self.userToken forHTTPHeaderField:@"token"];
+    NSLog(@"AUTHORIZE");
 }
 
-- (void)pusher:(PTPusher *)pusher didSubscribeToChannel:(PTPusherChannel *)channel {
-
+- (void)pusher:(PTPusher *)pusher didSubscribeToChannel:(PTPusherPresenceChannel *)channel {
+    printf("SUBSCRIBE");
 }
 
-- (void)pusher:(PTPusher *)pusher didUnsubscribeFromChannel:(PTPusherChannel *)channel {
-
+- (void)pusher:(PTPusher *)pusher didUnsubscribeFromChannel:(PTPusherPresenceChannel *)channel {
+    NSLog(@"UNSUBSCRIBE");
 }
 
-- (void)pusher:(PTPusher *)pusher didFailToSubscribeToChannel:(PTPusherChannel *)channel withError:(NSError *)error {
+- (void)pusher:(PTPusher *)pusher didFailToSubscribeToChannel:(PTPusherPresenceChannel *)channel withError:(NSError *)error {
     [self.errorStreamHandler sendError:error];
+    NSLog(@"FAIL SUBSCRIBE, %@ %li", error.localizedDescription, error.code);
 }
 
 - (void)pusher:(PTPusher *)pusher didReceiveErrorEvent:(PTPusherErrorEvent *)errorEvent {
@@ -94,29 +96,36 @@
         [self.pusher disconnect];
         result(@(YES));
     } else if ([call.method isEqualToString:@"triggerEvent"]) {
+        
         NSString *channelName = call.arguments[@"channel"];
         NSString *event = call.arguments[@"event"];
-        NSString *body = call.arguments[@"body"];
+        NSArray *body = call.arguments[@"body"];
 
         if([channelName containsString:@"presence"]) {
-            PTPusherPresenceChannel *channel = [self.pusher subscribeToPresenceChannelNamed:channelName delegate:self];
+            PTPusherPresenceChannel *channel = [self.pusher channelNamed:channelName];
             
-            if (channel) {
+            if (!channel) {
+                channel = [self.pusher subscribeToPresenceChannelNamed:channelName];
                 [channel triggerEventNamed:event data:body];
-                result(@(YES));
+                printf("END TRIGGER CALL");
             }
         }
+        
+        result(@(YES));
     } else if ([call.method isEqualToString:@"subscribe"]) {
         NSString *channelName = call.arguments[@"channel"];
         NSString *event = call.arguments[@"event"];
+
         PTPusherPresenceChannel *channel = [self.pusher channelNamed:channelName];
-        if (channel) {
-            channel = [self.pusher subscribeToPresenceChannelNamed:channelName delegate:self];
+        if (!channel) {
+            printf("SUBSCRIBE CHANNEL FOUND");
+            channel = [self.pusher subscribeToPresenceChannelNamed:channelName];
+            [self listenToChannel:channel forEvent:event];
         }
-        [self listenToChannel:channel forEvent:event];
+        
         result(@(YES));
     } else if ([call.method isEqualToString:@"unsubscribe"]) {
-        PTPusherChannel *channel = [self.pusher channelNamed:call.arguments];
+        PTPusherPresenceChannel *channel = [self.pusher channelNamed:call.arguments];
         [channel removeAllBindings];
         if (channel) {
             [channel unsubscribe];
@@ -127,8 +136,10 @@
 }
 
 - (void)listenToChannel:(PTPusherPresenceChannel *)channel forEvent:(NSString *)event {
+    printf("BIIIIIIIIIINNNNNNNNNNDDDDDDD");
+    NSLog(event);
     [channel bindToEventNamed:event handleWithBlock:^(PTPusherEvent *e) {
-        [self.messageStreamHandler send:channel.name event:event body:e.data];
+        [_messageStreamHandler send:channel.name event:event body:e.data];
     }];
 }
 

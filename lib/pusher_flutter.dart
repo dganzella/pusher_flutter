@@ -48,12 +48,14 @@ class PusherFlutter {
 
   /// Connect to the pusher service.
   Future<void> connect() async {
-    _channel.invokeMethod('connect');
+    await _channel.invokeMethod('connect');
     return;
   }
 
   Future<void> triggerEvent(PusherMessage message) async {
-    _channel.invokeMethod('triggerEvent', {"channel": message.channelName, "event": message.eventName, "body": jsonEncode(message.body)} );
+    await _channel.invokeMethod('triggerEvent', {"channel": message.channelName, "event": message.eventName, "body": jsonEncode(message.body)} );
+    print("TRIGGER DONE");
+    print(message.eventName);
     return;
   }
 
@@ -78,7 +80,7 @@ class PusherFlutter {
   /// This method is just for convenience if you need to register multiple events
   /// for the same channel.
   Future<void> subscribeAll(String channelName, List<String> events) async {
-    await events.forEach((e) => _channel.invokeMethod('subscribe', {"channel": channelName, "event": e}));
+    events.forEach((e) async => await _channel.invokeMethod('subscribe', {"channel": channelName, "event": e}));
     return;
   }
 
