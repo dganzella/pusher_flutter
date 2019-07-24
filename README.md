@@ -1,10 +1,14 @@
 # pusher_flutter
 
-A plugin for the Pusher service.
-
-In active development for our internal use case. Once API is stable we will publish a 1.0.0 release.
-Not ready for production use.
+A new flutter plugin project.
 
 ## Getting Started
 
-For help on editing plugin code, view the [documentation](https://flutter.io/platform-plugins/#edit-code).
+This project is a starting point for a Flutter
+[plug-in package](https://flutter.dev/developing-packages/),
+a specialized package that includes platform-specific implementation code for
+Android and/or iOS.
+
+For help getting started with Flutter, view our 
+[online documentation](https://flutter.dev/docs), which offers tutorials, 
+samples, guidance on mobile development, and a full API reference.

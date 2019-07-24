@@ -1,4 +1,4 @@
-package com.apptreesoftware.pusherflutter
+package com.apptreesoftware.pusher_flutter
 
 import android.app.Activity
 import com.pusher.client.Pusher
