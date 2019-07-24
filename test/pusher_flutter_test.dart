@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pusher_flutter/pusher_flutter.dart';
 
 void main() {
   const MethodChannel channel = MethodChannel('pusher_flutter');
@@ -16,6 +15,6 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    expect(await PusherFlutter.platformVersion, '42');
+    expect("0.0", '42');
   });
 }
