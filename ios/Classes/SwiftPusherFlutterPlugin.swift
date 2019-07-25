@@ -87,27 +87,34 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     }
 
     self.channel = pusher.subscribeToPresenceChannel(channelName: channelName, onMemberAdded: onMemberAdded)
-    let _ = channel.bind(eventName: eventName, callback: { data in
-      do {
-        if let dataObj = data as? [String : Any] {
-          
-          var messageMap: [String: Any] = [
-            "channel": channelName,
-            "event": eventName,
-            "body": dataObj
-          ]
+    
+    if(channel == nil){
+      self.channel.bind(eventName: "pusher:subscription_succeeded", callback: { data in
+        result(nil)
+      })
+    }
+    else{
+      let _ = channel.bind(eventName: eventName, callback: { data in
+        do {
+          if let dataObj = data as? [String : Any] {
+            
+            var messageMap: [String: Any] = [
+              "channel": channelName,
+              "event": eventName,
+              "body": dataObj
+            ]
 
-          if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
-            eventSinkObj(messageMap)
+            if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+              eventSinkObj(messageMap)
+            }
           }
+        } 
+        catch {
+          print("Pusher bind error")
         }
-      } 
-      catch {
-        print("Pusher bind error")
-      }
-    })
-
-    result(nil);
+      })
+      result(nil);
+    }
   }
   
   public func unsubscribe(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -126,7 +133,13 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     var eventName = myArgs["event"] as! String;
     var body = myArgs["body"] as! String;
 
-    self.channel.trigger(eventName: eventName, data: body)
+    if (self.channel != nil){
+      self.channel.trigger(eventName: eventName, data: body)
+    }
+    else{
+      print("User is not subscribed to channel, trigger event could not be done");
+    }
+    
     result(nil);
   }
   
@@ -141,7 +154,7 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
   }
     
   public func failedToSubscribeToChannel(name: String, response: URLResponse?, data: String?, error: NSError?){
-    print("NOT Subscribed to \(name)")
+    print("NOT subscribed to \(name)")
     print(data);
     print(error?.localizedDescription);
   }
