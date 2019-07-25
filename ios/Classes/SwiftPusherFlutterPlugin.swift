@@ -19,9 +19,7 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-    print(call.method);
-    switch call.method {
+   switch call.method {
     case "create":
       setup(call, result: result)
     case "connect":
@@ -90,19 +88,17 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
 
     self.channel = pusher.subscribeToPresenceChannel(channelName: channelName, onMemberAdded: onMemberAdded)
     let _ = channel.bind(eventName: eventName, callback: { data in
-      print(data)
       do {
         if let dataObj = data as? [String : Any] {
-          let pushJsonData = try! JSONSerialization.data(withJSONObject: dataObj)
-          let pushJsonString = NSString(data: pushJsonData, encoding: String.Encoding.utf8.rawValue)
-          let event = Event(channel: channelName, event: eventName, data: pushJsonString! as String)
-          let message = PusherEventStreamMessage(event: event, connectionStateChange:  nil)
-          let jsonEncoder = JSONEncoder()
-          let jsonData = try jsonEncoder.encode(message)
-          let jsonString = String(data: jsonData, encoding: .utf8)
+          
+          var messageMap: [String: Any] = [
+            "channel": channelName,
+            "event": eventName,
+            "body": dataObj
+          ]
+
           if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
-            eventSinkObj(jsonString)
-            print(jsonString)
+            eventSinkObj(messageMap)
           }
         }
       } 
@@ -183,25 +179,4 @@ class StreamHandler: NSObject, FlutterStreamHandler {
   public func onCancel(withArguments arguments: Any?) -> FlutterError? {
     return nil;
   }
-}
-
-struct PusherEventStreamMessage: Codable {
-    var event: Event?
-    var connectionStateChange: ConnectionStateChange?
-}
-
-struct ConnectionStateChange: Codable {
-    var currentState: String
-    var previousState: String
-}
-
-struct Event: Codable {
-    var channel: String
-    var event: String
-    var data: String
-}
-
-struct BindArgs: Codable {
-    var channelName: String
-    var eventName: String
 }
