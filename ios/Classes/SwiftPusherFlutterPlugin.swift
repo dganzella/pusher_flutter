@@ -7,6 +7,8 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
   var pusher: Pusher! = nil
   var channel: PusherPresenceChannel! = nil;
   public static var eventSink: FlutterEventSink?
+  var subscribedToChannel: Bool = false;
+  var resultFirstSubscribe: FlutterResult! = nil;
     
   public static func register(with registrar: FlutterPluginRegistrar) {
 
@@ -32,6 +34,8 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
       unsubscribe(call, result: result)
     case "triggerEvent":
       trigger(call, result: result)
+    case "getUsers":
+      getUsers(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -44,12 +48,12 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
 
     let myArgs = args as! [String: Any];
 
-    var apiKey = myArgs["api_key"] as! String;
-    var cluster = myArgs["cluster"] as! String;
-    var authEndpoint = myArgs["presenceAuthEndpoint"] as! String;
-    var userToken = myArgs["userToken"] as! String;
+    let apiKey = myArgs["api_key"] as! String;
+    let cluster = myArgs["cluster"] as! String;
+    let authEndpoint = myArgs["presenceAuthEndpoint"] as! String;
+    let userToken = myArgs["userToken"] as! String;
 
-    var options = PusherClientOptions(
+    let options = PusherClientOptions(
       authMethod: AuthMethod.authRequestBuilder(authRequestBuilder: AuthRequestBuilder(
         endpoint: authEndpoint,
         uToken: userToken
@@ -73,54 +77,81 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     result(nil);
   }
 
+  public func getUsers(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if(self.channel != nil){
+        result(self.channel.members);
+    }
+    else{
+        result(nil);
+    }
+  }
+    
   public func subscribe(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     guard let args = call.arguments else{
       return
     }
 
     let myArgs = args as! [String: Any];
-    var channelName = myArgs["channel"] as! String;
-    var eventName = myArgs["event"] as! String;
+    let channelName = myArgs["channel"] as! String;
+    let eventName = myArgs["event"] as! String;
 
-    var onMemberAdded = { (member: PusherPresenceChannelMember) in
-      print(member)
+    let onMemberAdded = { (member: PusherPresenceChannelMember) in
+      let messageMap: [String: Any] = [
+          "channel": channelName,
+          "event": "user_added",
+          "body":  member.userId
+      ];
+
+        if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+            eventSinkObj(messageMap)
+        }
     }
 
-    self.channel = pusher.subscribeToPresenceChannel(channelName: channelName, onMemberAdded: onMemberAdded)
+    let onMemberRemoved = { (member: PusherPresenceChannelMember) in
+        let messageMap: [String: Any] = [
+            "channel": channelName,
+            "event": "user_removed",
+            "body":  member.userId
+        ];
+        
+        if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+            eventSinkObj(messageMap)
+        }
+    }
     
-    if(channel == nil){
-      self.channel.bind(eventName: "pusher:subscription_succeeded", callback: { data in
-        result(nil)
-      })
+
+    if(self.channel == nil){
+        self.channel = pusher.subscribeToPresenceChannel(channelName: channelName, onMemberAdded: onMemberAdded, onMemberRemoved: onMemberRemoved)
+    }
+    
+    self.channel.bind(eventName: eventName, callback: { data in
+
+      if let dataObj = data as? [String : Any] {
+        
+        let messageMap: [String: Any] = [
+          "channel": channelName,
+          "event": eventName,
+          "body": dataObj
+        ]
+
+        if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+          eventSinkObj(messageMap)
+        }
+      }
+
+    })
+    
+    if(subscribedToChannel){
+        result(nil);
     }
     else{
-      let _ = channel.bind(eventName: eventName, callback: { data in
-        do {
-          if let dataObj = data as? [String : Any] {
-            
-            var messageMap: [String: Any] = [
-              "channel": channelName,
-              "event": eventName,
-              "body": dataObj
-            ]
-
-            if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
-              eventSinkObj(messageMap)
-            }
-          }
-        } 
-        catch {
-          print("Pusher bind error")
-        }
-      })
-      result(nil);
+        self.resultFirstSubscribe = result;
     }
   }
   
   public func unsubscribe(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let channelName = call.arguments as! String
     pusher.unsubscribe(channelName)
-    result(nil);
   }
 
   public func trigger(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -129,11 +160,10 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     }
 
     let myArgs = args as! [String: Any];
-    var channelName = myArgs["channel"] as! String;
-    var eventName = myArgs["event"] as! String;
-    var body = myArgs["body"] as! String;
+    let eventName = myArgs["event"] as! String;
+    let body = myArgs["body"] as! String;
 
-    if (self.channel != nil){
+    if (self.subscribedToChannel){
       self.channel.trigger(eventName: eventName, data: body)
     }
     else{
@@ -147,16 +177,22 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
   // PusherDelegate methods
   public func changedConnectionState(from old: ConnectionState, to new: ConnectionState) {
     print("old: \(old.stringValue()) -> new: \(new.stringValue())")
+    
+    if(new == ConnectionState.disconnected){
+        subscribedToChannel = false;
+        self.channel = nil;
+    }
   }
 
   public func subscribedToChannel(name: String) {
     print("Subscribed to \(name)")
+    
+    subscribedToChannel = true;
+    self.resultFirstSubscribe(nil);
   }
     
   public func failedToSubscribeToChannel(name: String, response: URLResponse?, data: String?, error: NSError?){
-    print("NOT subscribed to \(name)")
-    print(data);
-    print(error?.localizedDescription);
+    print("fail subscribed to \(name)")
   }
 
   public func debugLog(message: String) {
