@@ -96,10 +96,13 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     let eventName = myArgs["event"] as! String;
 
     let onMemberAdded = { (member: PusherPresenceChannelMember) in
+        
+        print("member added" )
+        
       let messageMap: [String: Any] = [
           "channel": channelName,
           "event": "user_added",
-          "body":  member.userId
+          "body":  String(member.userId)
       ];
 
         if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
@@ -108,10 +111,13 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     }
 
     let onMemberRemoved = { (member: PusherPresenceChannelMember) in
+        
+        print("member removed" )
+        
         let messageMap: [String: Any] = [
             "channel": channelName,
             "event": "user_removed",
-            "body":  member.userId
+            "body":  String(member.userId)
         ];
         
         if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
