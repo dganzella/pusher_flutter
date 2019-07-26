@@ -161,10 +161,14 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
 
                             override fun userSubscribed( channelName : String, user: User){
                                 println("user subscribed");
+
+                                messageStreamHandler.send(channel.name, "user_added", data)
                             }
 
                             override fun userUnsubscribed( channelName : String, user: User){
                                 println("user unsubscribed");
+
+                                messageStreamHandler.send(channel.name, "user_removed", data)
                             }
                         }
 
@@ -194,6 +198,18 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                 pusher.unsubscribe(channelName)
                 result.success(null)
             }
+             "getUsers" -> {
+
+                var channel = pusher.getPresenceChannel(channelName)
+
+                if (channel == null) {
+
+                    result.success(channel.getUsers())
+                }
+
+                result.success(null)
+
+             }
             else -> result.notImplemented()
         }
     }
