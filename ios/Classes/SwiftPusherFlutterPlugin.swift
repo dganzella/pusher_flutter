@@ -76,10 +76,30 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     pusher.disconnect();
     result(nil);
   }
+    
+    private func buildUsersArray() -> [[String: Any]]?
+    {
+        if(self.channel != nil){
+            
+            var arr: [[String: Any]] = [];
+            
+            self.channel.members.forEach { (member: PusherPresenceChannelMember) in
+                
+                arr.append([
+                    "userId:" : member.userId,
+                    "userInfo" : member.userInfo as Any
+                    ]);
+            }
+            
+            return arr;
+        }
+        
+        return nil;
+    }
 
   public func getUsers(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     if(self.channel != nil){
-        result(self.channel.members);
+        result(self.buildUsersArray());
     }
     else{
         result(nil);
@@ -97,27 +117,31 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
 
     let onMemberAdded = { (member: PusherPresenceChannelMember) in
         
-        print("member added" )
+      var bodyResponse: [String : Any] = [:];
+        
+      bodyResponse["users"] = self.buildUsersArray();
         
       let messageMap: [String: Any] = [
           "channel": channelName,
           "event": "user_added",
-          "body":  String(member.userId)
+          "body":  bodyResponse
       ];
 
-        if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
-            eventSinkObj(messageMap)
-        }
+      if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+        eventSinkObj(messageMap)
+      }
     }
 
     let onMemberRemoved = { (member: PusherPresenceChannelMember) in
         
-        print("member removed" )
+        var bodyResponse: [String : Any] = [:];
+        
+        bodyResponse["users"] = self.buildUsersArray();
         
         let messageMap: [String: Any] = [
             "channel": channelName,
             "event": "user_removed",
-            "body":  String(member.userId)
+            "body": bodyResponse
         ];
         
         if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
@@ -155,10 +179,11 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     }
   }
   
-  public func unsubscribe(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    let channelName = call.arguments as! String
-    pusher.unsubscribe(channelName)
-  }
+    public func unsubscribe(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let argsDict = call.arguments as! Dictionary<String, Any>
+        pusher.unsubscribe(argsDict["channel"] as! String)
+        result(nil);
+    }
 
   public func trigger(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     guard let args = call.arguments else{

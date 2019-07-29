@@ -52,6 +52,10 @@ class PusherFlutter {
     return;
   }
 
+  Future< List< dynamic > > getUsers() async {
+    return _channel.invokeMethod('getUsers');
+  }
+
   Future<void> triggerEvent(PusherMessage message) async {
     _channel.invokeMethod('triggerEvent', {"channel": message.channelName, "event": message.eventName, "body": jsonEncode(message.body)} );
     return;
