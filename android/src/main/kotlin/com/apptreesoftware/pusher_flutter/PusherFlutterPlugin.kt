@@ -6,6 +6,7 @@ import com.pusher.client.PusherOptions
 import com.pusher.client.channel.Channel
 import com.pusher.client.channel.SubscriptionEventListener
 import com.pusher.client.channel.PresenceChannelEventListener
+import com.pusher.client.channel.PresenceChannel
 import com.pusher.client.channel.User;
 import com.pusher.client.connection.ConnectionEventListener
 import com.pusher.client.connection.ConnectionState
@@ -21,9 +22,8 @@ import io.flutter.plugin.common.PluginRegistry.Registrar
 import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.common.StandardMethodCodec
 
-import org.json.JSONObject
+import org.json.*
 import java.lang.Exception
-import org.json.JSONArray
 import android.os.Handler
 import android.os.Looper
 import java.io.ByteArrayOutputStream;
@@ -111,9 +111,6 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                 if(channelName.contains("presence")){
                     var channel = pusher.getPresenceChannel(channelName)
 
-                    println("body");
-                    println(body);
-
                     if (channel != null) {
                         channel.trigger(event, body);
                         result.success(null)
@@ -162,9 +159,11 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                             override fun userSubscribed( channelName : String, user: User){
                                 println("user subscribed");
 
-                                var channel = pusher.getPresenceChannel(channelName)
+                                var j = JSONObject();
 
-                                messageStreamHandler.send(channel.name, "user_added", channel.getUsers())
+                                j.put("users", buildUsersArray(channel));
+
+                                messageStreamHandler.send(channel.name, "user_added", j.toString() )
                             }
 
                             override fun userUnsubscribed( channelName : String, user: User){
@@ -172,7 +171,11 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
 
                                 var channel = pusher.getPresenceChannel(channelName)
 
-                                messageStreamHandler.send(channel.name, "user_removed", channel.getUsers())
+                                var j = JSONObject();
+
+                                j.put("users", buildUsersArray(channel));
+
+                                messageStreamHandler.send(channel.name, "user_removed", j.toString() )
                             }
                         }
 
@@ -211,15 +214,39 @@ class PusherFlutterPlugin() : MethodCallHandler, ConnectionEventListener {
                 var channel = pusher.getPresenceChannel(channelName)
 
                 if (channel != null) {
-
-                    result.success(channel.getUsers())
+                    result.success( toList(buildUsersArray(channel)) )
                 }
-
-                result.success(null)
-
+                else{
+                    result.success(null)
+                }
+                
              }
             else -> result.notImplemented()
         }
+    }
+
+    private fun buildUsersArray(channel: PresenceChannel): JSONArray {
+
+        val users = channel.getUsers();
+
+        var jarr = JSONArray();
+
+        users.forEach { user ->
+
+            var singleUser = JSONObject();
+            val userInfo = JSONObject(user.getInfo());
+
+            userInfo.put( "id",  userInfo.getDouble("id").toInt() )
+            userInfo.put( "companyId", userInfo.getDouble("companyId").toInt() )
+            userInfo.put( "roleId", userInfo.getDouble("roleId").toInt() )
+
+            singleUser.put("userId", user.getId());
+            singleUser.put("userInfo", userInfo );
+            
+            jarr.put( singleUser );
+        }
+
+        return jarr;
     }
 
     private fun listenToChannel(channel: Channel, event: String) {
