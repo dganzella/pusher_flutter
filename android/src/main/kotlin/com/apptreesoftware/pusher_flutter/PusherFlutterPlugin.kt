@@ -291,11 +291,24 @@ class MessageStreamHandler : EventChannel.StreamHandler {
     }
 
     fun send(channel: String, event: String, data: Any) {
-        val json = JSONObject(data as String)
-        val map = jsonToMap(json)
-        eventSink?.success(mapOf("channel" to channel,
-                "event" to event,
-                "body" to map))
+        try {
+            val jsonObject = JSONObject(data as String)
+            val map = jsonToMap(jsonObject)
+
+            eventSink?.success(mapOf("channel" to channel,
+                    "event" to event,
+                    "body" to map))
+
+        }catch (e: JSONException) {
+            val jsonArray = JSONArray(data as String)
+            val map = jsonArrayToMap(jsonArray)
+
+            eventSink?.success(mapOf("channel" to channel,
+                    "event" to event,
+                    "body" to map))
+        }
+
+
     }
 
     override fun onCancel(p0: Any?) {
@@ -360,6 +373,15 @@ fun jsonToMap(json: JSONObject?): Map<String, Any> {
     return retMap
 }
 
+fun jsonArrayToMap(json: JSONArray?): Map<String, Any> {
+    var retMap: Map<String, Any> = HashMap()
+
+    if (json != null) {
+        retMap = arrayToMap(json)
+    }
+    return retMap
+}
+
 fun toMap(`object`: JSONObject): Map<String, Any> {
     val map = HashMap<String, Any>()
 
@@ -374,6 +396,24 @@ fun toMap(`object`: JSONObject): Map<String, Any> {
             value = toMap(value)
         }
         map.put(key, value)
+    }
+    return map
+}
+
+fun arrayToMap(`object`: JSONArray): Map<String, Any> {
+    val map = HashMap<String, Any>()
+
+    for (i in 0 until `object`.length()) {
+        var value = `object`.get(i)
+
+        if (value is JSONArray) {
+            value = toList(value)
+        } else if (value is JSONObject) {
+            value = toMap(value)
+        }
+
+        map.put(i.toString(), value)
+
     }
     return map
 }
