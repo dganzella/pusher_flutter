@@ -155,20 +155,39 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     }
     
     self.channel.bind(eventName: eventName, callback: { data in
-
-      if let dataObj = data as? [String : Any] {
         
-        let messageMap: [String: Any] = [
-          "channel": channelName,
-          "event": eventName,
-          "body": dataObj
-        ]
-
-        if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
-          eventSinkObj(messageMap)
+        if let dataObj = data as? [String : Any] {
+            
+            let messageMap: [String: Any] = [
+                "channel": channelName,
+                "event": eventName,
+                "body": dataObj
+            ]
+            
+            if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+                eventSinkObj(messageMap)
+            }
         }
-      }
-
+        else if let dataObjArr = data as? [Any] {
+            
+            var dataObj: [String: Any] = [:];
+            
+            for (idx,obj) in dataObjArr.enumerated() {
+                
+                let internobj = obj as? [String : Any];
+                dataObj[String(idx)] = internobj;
+            }
+            
+            let messageMap: [String: Any] = [
+                "channel": channelName,
+                "event": eventName,
+                "body": dataObj
+            ]
+            
+            if let eventSinkObj = SwiftPusherFlutterPlugin.eventSink {
+                eventSinkObj(messageMap)
+            }
+        }
     })
     
     if(subscribedToChannel){
@@ -177,7 +196,7 @@ public class SwiftPusherFlutterPlugin: NSObject, FlutterPlugin, PusherDelegate {
     else{
         self.resultFirstSubscribe = result;
     }
-  }
+    }
   
     public func unsubscribe(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let argsDict = call.arguments as! Dictionary<String, Any>
